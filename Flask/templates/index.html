@@ -1,0 +1,596 @@
+<!-- templates/index.html (HTML Frontend with Bootstrap & JavaScript) -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero-Day Attack Monitoring Dashboard</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js CDN for plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+        .dashboard-metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .anomaly-indicator {
+            height: 50px;
+            border-radius: 0.5rem;
+            transition: background-color 0.5s ease;
+        }
+        .anomaly-low { background-color: #28a745; /* Green */ }
+        .anomaly-medium { background-color: #ffc107; /* Yellow */ }
+        .anomaly-high { background-color: #dc3545; /* Red */ }
+
+        .attack-reaction-box {
+            border: 2px solid #ccc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.5s ease;
+        }
+        .attack-detected {
+            border-color: #dc3545;
+            background-color: #dc354522; /* Light red background */
+            color: #dc3545;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        /* Styling for the new simulation control buttons */
+        .simulation-control-card .btn {
+            border-radius: 0.5rem;
+            margin-right: 0.5rem; /* Space between buttons */
+        }
+        .badge-info {
+            background-color: #17a2b8; /* Bootstrap info blue */
+            color: white;
+            padding: 0.5em 0.75em;
+            border-radius: 0.5rem;
+        }
+        .recent-events-table {
+            max-height: 300px; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="https://placehold.co/30x30/FFFFFF/000000?text=)\🛡️" alt="Logo" class="d-inline-block align-text-top me-2">
+                Financial Zero-Day Defense
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Reports</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Settings</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <h1 class="mb-4">Real-Time Zero-Day Attack Monitoring</h1>
+
+        <!-- Overall Metrics Dashboard -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">Total Transactions</h5>
+                        <p class="dashboard-metric-value" id="totalTransactions">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">Threats Detected (24h)</h5>
+                        <p class="dashboard-metric-value text-danger" id="threatsDetected">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">Blocked Attempts (24h)</h5>
+                        <p class="dashboard-metric-value text-success" id="blockedAttempts">Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted">Active Users</h5>
+                        <p class="dashboard-metric-value text-info" id="activeUsers">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Anomaly Detection Section -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        Real-Time Anomaly Analysis
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="anomalyThreshold" class="form-label">Anomaly Threshold: <span id="thresholdValue" class="badge bg-primary">5.0</span></label>
+                            <input type="range" class="form-range" id="anomalyThreshold" min="0.1" max="10.0" step="0.1" value="5.0">
+                        </div>
+                        <h4 class="mb-3">Current Anomaly Score: <span id="currentAnomalyScore" class="badge bg-secondary">0.00</span></h4>
+                        <div class="anomaly-indicator" id="anomalyIndicator"></div>
+                        <p class="mt-3 fs-5" id="anomalyStatus">Waiting for data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Reaction & Prevention -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        System Reaction & Prevention
+                    </div>
+                    <div class="card-body">
+                        <div class="attack-reaction-box" id="attackReactionBox">
+                            System is operating normally.
+                        </div>
+                        <p class="mt-3 text-muted">
+                            *This section simulates immediate responses to detected zero-day attacks.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Simulation Control Section -->
+            <div class="col-md-6 mb-4">
+                <div class="card simulation-control-card">
+                    <div class="card-header">
+                        Simulation Control
+                    </div>
+                    <div class="card-body text-center">
+                        <p class="text-muted">Start or stop the real-time log simulation of financial transactions.</p>
+                        <button class="btn btn-success" id="beginSimulationBtn">Begin Simulation</button>
+                        <button class="btn btn-warning" id="stopSimulationBtn" disabled>Stop Simulation</button>
+                        <div id="simulationStatus" class="mt-3 badge bg-info">Simulation Stopped</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anomaly Score History Chart -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        Anomaly Score History
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="anomalyScoreChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Recent Attack Events Table -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        Recent Attack Events
+                    </div>
+                    <div class="card-body recent-events-table">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Anomaly Score</th>
+                                    <th>Status</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentEventsTableBody">
+                                <!-- Events will be dynamically added here -->
+                                <tr><td colspan="4" class="text-center text-muted">No recent attack events.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Attack Breakdown Pie Chart -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        Daily Attack Breakdown
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="attackBreakdownChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const anomalyThresholdSlider = document.getElementById('anomalyThreshold');
+        const thresholdValueSpan = document.getElementById('thresholdValue');
+        const currentAnomalyScoreSpan = document.getElementById('currentAnomalyScore');
+        const anomalyIndicatorDiv = document.getElementById('anomalyIndicator');
+        const anomalyStatusP = document.getElementById('anomalyStatus');
+        const attackReactionBox = document.getElementById('attackReactionBox');
+
+        // References to the new simulation control buttons and status
+        const beginSimulationBtn = document.getElementById('beginSimulationBtn');
+        const stopSimulationBtn = document.getElementById('stopSimulationBtn');
+        const simulationStatusSpan = document.getElementById('simulationStatus');
+        const recentEventsTableBody = document.getElementById('recentEventsTableBody');
+
+        let simulationIntervalId;
+        let isSimulationRunning = false;
+
+        let anomalyScoreHistory = [];
+        let anomalyLabelsHistory = [];
+        let chart; // Anomaly Score History Chart.js instance
+        let attackBreakdownChart; // Daily Attack Breakdown Chart.js instance
+
+        // Object to store counts of different attack types for the pie chart
+        let attackTypeCounts = {
+            'Phishing': 0, 'Malware': 0, 'DDoS': 0, 'Insider Threat': 0, 'Zero-Day Exploitation': 0, 'Benign': 0
+        };
+
+        // Flask will inject this from the backend.
+        const MODEL_INPUT_DIM = {{ MODEL_INPUT_DIM }};
+
+        // Initialize Chart.js for Anomaly Score History
+        function initializeAnomalyScoreChart() {
+            const ctx = document.getElementById('anomalyScoreChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [], // Time labels
+                    datasets: [{
+                        label: 'Anomaly Score',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false,
+                        pointRadius: 3,
+                        pointBackgroundColor: function(context) {
+                            const index = context.dataIndex;
+                            const score = context.dataset.data[index];
+                            return score > parseFloat(anomalyThresholdSlider.value) ? 'red' : 'green';
+                        }
+                    }, {
+                        // Dataset for the anomaly threshold line
+                        label: 'Anomaly Threshold',
+                        data: Array(50).fill(parseFloat(anomalyThresholdSlider.value)),
+                        borderColor: 'rgba(255, 99, 132, 0.7)',
+                        borderDash: [5, 5],
+                        tension: 0.1,
+                        fill: false,
+                        pointRadius: 0 // No points for the threshold line
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Anomaly Score'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2);
+                                    }
+                                    // Only add (Anomaly) if it's the 'Anomaly Score' dataset and actually an anomaly
+                                    if (context.dataset.label === 'Anomaly Score') {
+                                        const index = context.dataIndex;
+                                        const isAnomaly = anomalyLabelsHistory[index];
+                                        if (isAnomaly) {
+                                            label += ' (Anomaly)';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Update threshold line dynamically
+            anomalyThresholdSlider.addEventListener('input', (event) => {
+                const newThreshold = parseFloat(event.target.value);
+                thresholdValueSpan.textContent = newThreshold.toFixed(1);
+                chart.data.datasets[1].data.fill(newThreshold); // Update threshold line data
+                chart.update(); // Redraw chart
+                updateAnomalyIndicator(parseFloat(currentAnomalyScoreSpan.textContent)); // Re-evaluate indicator
+            });
+        }
+
+        // Initialize Chart.js for Daily Attack Breakdown
+        function initializeAttackBreakdownChart() {
+            const ctx = document.getElementById('attackBreakdownChart').getContext('2d');
+            attackBreakdownChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(attackTypeCounts),
+                    datasets: [{
+                        data: Object.values(attackTypeCounts),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)', // Phishing (Red)
+                            'rgba(54, 162, 235, 0.8)', // Malware (Blue)
+                            'rgba(255, 206, 86, 0.8)', // DDoS (Yellow)
+                            'rgba(75, 192, 192, 0.8)', // Insider Threat (Teal)
+                            'rgba(153, 102, 255, 0.8)', // Zero-Day Exploitation (Purple)
+                            'rgba(40, 167, 69, 0.8)' // Benign (Green)
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((acc, current) => acc + current, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0.0%';
+                                    return `${label}: ${value} (${percentage})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Anomaly Indicator Color
+        function updateAnomalyIndicator(score) {
+            anomalyIndicatorDiv.classList.remove('anomaly-low', 'anomaly-medium', 'anomaly-high');
+            const threshold = parseFloat(anomalyThresholdSlider.value);
+            if (score > threshold * 1.2) { // Significantly above threshold
+                anomalyIndicatorDiv.classList.add('anomaly-high');
+                anomalyStatusP.textContent = 'HIGH ANOMALY DETECTED!';
+                anomalyStatusP.style.color = '#dc3545';
+                attackReactionBox.classList.add('attack-detected');
+            } else if (score > threshold) { // Above threshold
+                anomalyIndicatorDiv.classList.add('anomaly-medium');
+                anomalyStatusP.textContent = 'Anomaly Detected!';
+                anomalyStatusP.style.color = '#ffc107';
+                attackReactionBox.classList.add('attack-detected');
+            } else {
+                anomalyIndicatorDiv.classList.add('anomaly-low');
+                anomalyStatusP.textContent = 'Normal Behavior';
+                anomalyStatusP.style.color = '#28a745';
+                attackReactionBox.classList.remove('attack-detected');
+            }
+        }
+
+        // Simulate random log data for demonstration
+        function generateRandomLogFeatures(type) {
+            let features = [];
+            // Use MODEL_INPUT_DIM passed from Flask backend
+            for (let i = 0; i < MODEL_INPUT_DIM; i++) {
+                if (type === 'benign') {
+                    // Simulate benign data (e.g., values around 5, small std dev)
+                    features.push(Math.random() * 2 + 4); // Range 4 to 6
+                } else {
+                    // Simulate anomaly data (e.g., values outside normal range)
+                    features.push(Math.random() * 5 - 10); // Range -10 to -5
+                }
+            }
+            return features;
+        }
+
+        // Send log data to Flask backend for analysis
+        async function sendLogForAnalysis() {
+            // Determine if it's a benign or anomaly log based on a probability
+            const randomType = Math.random() < 0.15 ? 'anomaly' : 'benign'; // 15% chance of anomaly
+            const logFeatures = generateRandomLogFeatures(randomType);
+
+            try {
+                const response = await fetch('/api/analyze_log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ log_features: logFeatures }),
+                });
+                const result = await response.json();
+
+                if (result.error) {
+                    console.error("API Error:", result.error);
+                    anomalyStatusP.textContent = `Error: ${result.error}`;
+                    anomalyStatusP.style.color = '#dc3545';
+                    return;
+                }
+
+                currentAnomalyScoreSpan.textContent = result.score.toFixed(2);
+                updateAnomalyIndicator(result.score);
+                attackReactionBox.textContent = result.reaction || "System is operating normally.";
+
+                // Update Anomaly Score History chart
+                const now = new Date();
+                chart.data.labels.push(now.toLocaleTimeString());
+                chart.data.datasets[0].data.push(result.score);
+                anomalyLabelsHistory.push(result.is_anomaly);
+
+                // Limit chart history to, e.g., last 50 points
+                const maxHistory = 50;
+                if (chart.data.labels.length > maxHistory) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                    anomalyLabelsHistory.shift();
+                }
+                chart.update();
+
+                // Update Recent Attack Events table
+                if (result.is_anomaly) {
+                    // Remove initial "No recent events" row if it exists
+                    if (recentEventsTableBody.children.length === 1 && recentEventsTableBody.children[0].textContent.includes('No recent attack events')) {
+                        recentEventsTableBody.innerHTML = '';
+                    }
+                    const row = recentEventsTableBody.insertRow(0); // Insert at top
+                    const timeCell = row.insertCell(0);
+                    const scoreCell = row.insertCell(1);
+                    const statusCell = row.insertCell(2);
+                    const typeCell = row.insertCell(3);
+
+                    timeCell.textContent = now.toLocaleTimeString();
+                    scoreCell.textContent = result.score.toFixed(2);
+                    statusCell.textContent = result.status;
+                    statusCell.classList.add(result.is_anomaly ? 'text-danger' : 'text-success'); // Add color
+                    typeCell.textContent = result.attack_type;
+
+                    // Update Attack Breakdown Pie Chart
+                    attackTypeCounts[result.attack_type]++;
+                } else {
+                    // Always count benign events too, just for the pie chart
+                    attackTypeCounts['Benign']++;
+                }
+                updateAttackBreakdownChart(); // Update pie chart
+
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                anomalyStatusP.textContent = `Failed to connect to backend: ${error.message}. Is the Flask server running?`;
+                anomalyStatusP.style.color = '#dc3545';
+            }
+        }
+
+        // Update dashboard metrics
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                const metrics = await response.json();
+                document.getElementById('totalTransactions').textContent = metrics.totalTransactions.toLocaleString();
+                document.getElementById('threatsDetected').textContent = metrics.threatsDetected.toLocaleString();
+                document.getElementById('blockedAttempts').textContent = metrics.blockedAttempts.toLocaleString();
+                document.getElementById('activeUsers').textContent = metrics.activeUsers.toLocaleString();
+            } catch (error) {
+                console.error("Error fetching metrics:", error);
+            }
+        }
+
+        // Update Daily Attack Breakdown Pie Chart data
+        function updateAttackBreakdownChart() {
+            attackBreakdownChart.data.datasets[0].data = Object.values(attackTypeCounts);
+            attackBreakdownChart.update();
+        }
+
+        function startSimulation() {
+            if (isSimulationRunning) return; // Prevent multiple intervals
+
+            simulationIntervalId = setInterval(() => {
+                sendLogForAnalysis(); // Send random log
+                updateMetrics(); // Update general metrics
+            }, 2000); // Update every 2 seconds
+
+            isSimulationRunning = true;
+            beginSimulationBtn.disabled = true;
+            stopSimulationBtn.disabled = false;
+            simulationStatusSpan.textContent = "Simulation Running";
+            simulationStatusSpan.classList.remove('bg-info', 'bg-warning');
+            simulationStatusSpan.classList.add('bg-success');
+            console.log("Simulation started.");
+        }
+
+        function stopSimulation() {
+            clearInterval(simulationIntervalId);
+            isSimulationRunning = false;
+            beginSimulationBtn.disabled = false;
+            stopSimulationBtn.disabled = true;
+            simulationStatusSpan.textContent = "Simulation Stopped";
+            simulationStatusSpan.classList.remove('bg-success');
+            simulationStatusSpan.classList.add('bg-warning');
+            console.log("Simulation stopped.");
+        }
+
+        // Initial setup and event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeAnomalyScoreChart();
+            initializeAttackBreakdownChart();
+            updateMetrics(); // Load initial metrics and display "Waiting for data..."
+
+            // Attach event listeners to buttons
+            beginSimulationBtn.addEventListener('click', startSimulation);
+            stopSimulationBtn.addEventListener('click', stopSimulation);
+        });
+    </script>
+</body>
+</html>
